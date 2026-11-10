@@ -415,6 +415,11 @@ function viewTimer() {
 function saveForm() {
   const msg = h('small', { role: 'status' });
   const input = h('input', { class: 'field', id: 'name', placeholder: 'Enter your first name to save your data', autocomplete: 'off', autocapitalize: 'words', spellcheck: false, maxLength: 20, 'aria-label': 'Enter your first name to save your data' });
+  requestAnimationFrame(() => {   // size the box to exactly fit its placeholder, whatever the font
+    const cs = getComputedStyle(input), pen = document.createElement('canvas').getContext('2d');
+    pen.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    input.style.width = Math.ceil(pen.measureText(input.placeholder).width) + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + 2 + 'px';
+  });
   const form = h('form', { onsubmit: (e) => { e.preventDefault(); submitName(input.value, (t) => { msg.textContent = t; }); } },
     input, h('button', { class: 'btn', type: 'submit' }, 'Save'));
   return [form, msg];

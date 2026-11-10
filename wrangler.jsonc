@@ -1,0 +1,10 @@
+{
+  // Cloudflare settings for Lucky's Work Timer.
+  "name": "work-timer",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+  // The site: plain files, served as they are.
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  // The database behind save codes. Cloudflare creates it on the first deploy.
+  "d1_databases": [{ "binding": "DB", "database_name": "work-timer" }]
+}

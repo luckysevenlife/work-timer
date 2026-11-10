@@ -1,10 +1,11 @@
-// Save-code backend for Lucky's Work Timer (Cloudflare Pages Functions + D1).
+// Save-code backend for Lucky's Work Timer (Cloudflare Worker + D1).
+// The site itself is the static files in public/; this only answers /api/ requests.
 //
 //   POST /api/claim        { name, data? }  -> { code }          makes a new code like Mike4821
 //   GET  /api/data?code=X                   -> { code, data }
 //   PUT  /api/data?code=X  <json>           -> { ok: true }
 //
-// Needs a D1 database bound to this Pages project with the variable name DB.
+// Needs a D1 database bound with the variable name DB (see wrangler.jsonc).
 
 const MAX_BYTES = 1_500_000;
 let ready = false;
@@ -41,12 +42,11 @@ function checkData(value) {
   return text.length <= MAX_BYTES ? text : null;
 }
 
-export async function onRequest({ request, env, params }) {
+async function api(request, env, url) {
   const db = env.DB;
   if (!db) return json({ error: 'not_configured' }, 503);
 
-  const route = (params.path || []).join('/');
-  const url = new URL(request.url);
+  const route = url.pathname.slice('/api/'.length);
   const method = request.method;
 
   try {
@@ -97,3 +97,10 @@ export async function onRequest({ request, env, params }) {
     return json({ error: 'server_error' }, 500);
   }
 }
+
+export default {
+  fetch(request, env) {
+    const url = new URL(request.url);
+    return url.pathname.startsWith('/api/') ? api(request, env, url) : env.ASSETS.fetch(request);
+  },
+};

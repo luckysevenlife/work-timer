@@ -350,7 +350,7 @@ function codeModal() {
 /* ---------- routing ---------- */
 const currentView = () => (location.hash === '#calendar' ? 'calendar' : 'timer');
 function go(v) {
-  if (v === 'calendar') cal.cur = todayKey();
+  if (v === 'calendar') { cal.mode = 'day'; cal.cur = todayKey(); }
   if (currentView() === v) render(); else location.hash = v;
 }
 
@@ -379,12 +379,12 @@ function viewTimer() {
     goalInput,
     bar: h('i'),
     play: h('button', { class: 'play', onclick: () => { closePops(); toggle(); } }),
-    resetPop: h('div', { class: 'pop left', hidden: true },
+    resetPop: h('div', { class: 'pop', hidden: true },
       h('span', null, 'Reset today to 0?'),
       h('div', { class: 'poprow' },
         h('button', { class: 'chip', onclick: () => { closePops(); resetToday(); } }, 'Yes'),
         h('button', { class: 'chip', onclick: closePops }, 'No'))),
-    adjustPop: h('div', { class: 'pop right', hidden: true },
+    adjustPop: h('div', { class: 'pop', hidden: true },
       h('div', { class: 'popgrid' },
         adj('+1h', 3600), adj('+10m', 600), adj('+1m', 60),
         adj('−1h', -3600), adj('−10m', -600), adj('−1m', -60))),
@@ -400,15 +400,13 @@ function viewTimer() {
 
   const el = h('section', { class: 'timer' },
     T.clock,
-    h('div', { class: 'goal' },
-      h('label', { for: 'goal' }, 'Goal:'), goalInput,
-      h('div', { class: 'bar' }, T.bar)),
+    h('div', { class: 'goal' }, h('label', { for: 'goal' }, 'Goal:'), goalInput),
+    h('div', { class: 'bar' }, T.bar),
     h('div', { class: 'controls' },
-      h('div', { class: 'ctl' },
-        h('button', { class: 'mini', html: ICON.reset, 'aria-label': 'Reset today to zero', onclick: () => togglePop(T.resetPop) }), T.resetPop),
+      h('button', { class: 'round', html: ICON.reset, 'aria-label': 'Reset today to zero', onclick: () => togglePop(T.resetPop) }),
       T.play,
-      h('div', { class: 'ctl' },
-        h('button', { class: 'mini', html: ICON.adjust, 'aria-label': 'Add or remove time', onclick: () => togglePop(T.adjustPop) }), T.adjustPop)),
+      h('button', { class: 'round', html: ICON.adjust, 'aria-label': 'Add or remove time', onclick: () => togglePop(T.adjustPop) }),
+      T.resetPop, T.adjustPop),
     saveBox);
   paintTimer(true);
   return el;
@@ -443,7 +441,7 @@ function paintTimer(force) {
 }
 
 /* ---------- calendar ---------- */
-const cal = { mode: 'month', cur: todayKey() };
+const cal = { mode: 'day', cur: todayKey() };
 
 function rangeStats(keys) {
   const today = todayKey();
@@ -537,8 +535,10 @@ function dayView(key) {
     const note = h('textarea', {
       class: 'note', id: 'note-' + key, placeholder: 'What did you work on?', value: (d && d.note) || '', maxLength: 4000,
       'aria-label': 'Note for this day',
-      oninput: () => edit((x) => { x.note = note.value; }),
+      oninput: () => { fit(); edit((x) => { x.note = note.value; }); },
     });
+    const fit = () => { note.style.height = 'auto'; note.style.height = note.scrollHeight + 2 + 'px'; };  // grow with the text
+    requestAnimationFrame(fit);
     side.append(
       h('div', null, h('h3', null, 'Note'), note),
       h('div', null, h('button', { class: 'btn small', onclick: () => { edit((x) => { x.rest = !x.rest; }); render(); } },
@@ -662,7 +662,7 @@ window.addEventListener('storage', (e) => { if (e.key === STORE) { S = load(); r
 window.addEventListener('keydown', () => { lastTouch = Date.now(); }, true);
 window.addEventListener('pointerdown', (e) => {
   lastTouch = Date.now();
-  if (!e.target.closest('.ctl')) closePops();
+  if (!e.target.closest('.round, .pop')) closePops();
 }, true);
 
 function leaving() {

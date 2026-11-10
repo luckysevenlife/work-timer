@@ -396,7 +396,7 @@ function viewTimer() {
     ? h('div', { class: 'save' },
         h('div', { class: 'codeline' }, 'Your data is saved as ', h('b', null, S.code)),
         h('button', { class: 'btn small', onclick: copyCode }, 'Copy code'))
-    : h('div', { class: 'save' }, form, msg, h('span', { class: 'hint' }, 'Already have a code? Type it in instead.'));
+    : h('div', { class: 'save' }, form, msg, h('span', { class: 'hint' }, 'Already have a code? Type it in.'));
 
   const el = h('section', { class: 'timer' },
     T.clock,
@@ -414,7 +414,7 @@ function viewTimer() {
 
 function saveForm() {
   const msg = h('small', { role: 'status' });
-  const input = h('input', { class: 'field', id: 'name', placeholder: 'Enter your name to save your data', autocomplete: 'off', autocapitalize: 'words', spellcheck: false, maxLength: 20, 'aria-label': 'Enter your name to save your data' });
+  const input = h('input', { class: 'field', id: 'name', placeholder: 'Enter your first name to save your data', autocomplete: 'off', autocapitalize: 'words', spellcheck: false, maxLength: 20, 'aria-label': 'Enter your first name to save your data' });
   const form = h('form', { onsubmit: (e) => { e.preventDefault(); submitName(input.value, (t) => { msg.textContent = t; }); } },
     input, h('button', { class: 'btn', type: 'submit' }, 'Save'));
   return [form, msg];

@@ -418,7 +418,7 @@ function saveForm() {
   requestAnimationFrame(() => {   // size the box to exactly fit its placeholder, whatever the font
     const cs = getComputedStyle(input), pen = document.createElement('canvas').getContext('2d');
     pen.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-    input.style.width = Math.ceil(pen.measureText(input.placeholder).width) + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + 2 + 'px';
+    input.style.width = Math.ceil(pen.measureText(input.placeholder).width) + 'px';
   });
   const form = h('form', { onsubmit: (e) => { e.preventDefault(); submitName(input.value, (t) => { msg.textContent = t; }); } },
     input, h('button', { class: 'btn', type: 'submit' }, 'Save'));

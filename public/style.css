@@ -121,12 +121,12 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .chip:hover { background: var(--hover); }
 
 .save { margin-top: auto; padding-top: 110px; display: flex; flex-direction: column; gap: 8px; align-items: center; width: 100%; }
-.save form { display: flex; justify-content: center; gap: 8px; max-width: 100%; }
+.save form { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 100%; }
 .save small, .hint { color: var(--muted); font-size: 13px; }
 .codeline { color: var(--muted); }
 .codeline b { color: var(--text); }
 .field {
-  flex: 0 1 auto; width: 296px; min-width: 0;
+  box-sizing: content-box; flex: none; width: 258px; max-width: calc(100% - 26px);
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -268,8 +268,6 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .year { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .timer { padding-top: 11vh; }
   .hours { width: 46px; }
-  .field { padding-inline: 8px; }
-  .save .btn { padding-inline: 12px; }
   .cell { padding: 5px 6px; aspect-ratio: auto; }
   .cell .t { font-size: 10px; white-space: normal; line-height: 1.2; }
   .caltitle { font-size: 22px; }

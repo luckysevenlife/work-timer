@@ -88,6 +88,7 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   padding: 6px 10px;
   text-align: center;
 }
+.goalbox:hover, .field:hover, .note:hover { background: var(--raised); }
 .goalbox::placeholder, .field::placeholder, .note::placeholder { color: var(--muted); opacity: .75; }
 .bar { width: min(320px, 70vw); height: 4px; border-radius: 4px; background: var(--raised); overflow: hidden; }
 .bar i { display: block; height: 100%; width: 0; background: var(--text); border-radius: 4px; }
@@ -149,6 +150,7 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .calctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .seg { display: flex; background: var(--panel); border-radius: 9px; padding: 3px; }
 .seg button { padding: 5px 14px; border-radius: 7px; color: var(--muted); font-weight: 500; font-size: 14px; }
+.seg button:hover { background: var(--raised); color: var(--text); }
 .seg button.on { background: var(--hover); color: var(--text); }
 .arrows { display: flex; gap: 4px; }
 .arrows button { background: var(--panel); border-radius: 8px; padding: 5px 13px; font-size: 14px; font-weight: 500; }

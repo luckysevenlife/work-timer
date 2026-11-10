@@ -393,9 +393,7 @@ function viewTimer() {
 
   const [form, msg] = saveForm();
   const saveBox = S.code
-    ? h('div', { class: 'save' },
-        h('div', { class: 'codeline' }, 'Logged in as ', h('b', null, S.code)),
-        h('button', { class: 'btn small', onclick: copyCode }, 'Copy login'))
+    ? h('div', { class: 'save' }, h('div', { class: 'codeline' }, 'Logged in as ', h('b', null, S.code)))
     : h('div', { class: 'save' }, form, msg, h('span', { class: 'hint' }, 'Already have a login? Type it in.'));
 
   const el = h('section', { class: 'timer' },

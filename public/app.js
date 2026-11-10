@@ -302,14 +302,14 @@ async function loadCode(code, say) {
   say('Loading…');
   try {
     const r = await fetch(dataUrl(code));
-    if (r.status === 404) return say('No data found for that code. Check the spelling.');
+    if (r.status === 404) return say('No data found for that login. Check the spelling.');
     const j = await r.json();
     if (!r.ok || !j.code) throw new Error('load failed');
     merge(j.data);
     S.code = j.code;
     save();
     render();
-    toast(`Loaded ${j.code}.`);
+    toast(`Logged in as ${j.code}.`);
     push().catch(() => {});
   } catch (e) { say("Couldn't load right now. Check your connection and try again."); }
 }
@@ -334,16 +334,16 @@ function toast(msg) {
 }
 
 function copyCode() {
-  navigator.clipboard.writeText(S.code).then(() => toast('Code copied.'), () => toast(`Your code is ${S.code}`));
+  navigator.clipboard.writeText(S.code).then(() => toast('Login copied.'), () => toast(`Your login is ${S.code}`));
 }
 
 function codeModal() {
   openModal(h('div', { class: 'modal' },
-    h('h2', null, 'Your code is'),
+    h('h2', null, 'Your login is'),
     h('div', { class: 'bigcode' }, S.code),
-    h('p', null, 'Save it. Type it in on any device to get your data back.'),
+    h('p', null, 'Save it for later. It’s the only way to see your saved hours and calendar on another device.'),
     h('div', { class: 'row' },
-      h('button', { class: 'btn', onclick: copyCode }, 'Copy code'),
+      h('button', { class: 'btn', onclick: copyCode }, 'Copy login'),
       h('button', { class: 'btn light', onclick: closeModal }, 'Done'))));
 }
 
@@ -394,9 +394,9 @@ function viewTimer() {
   const [form, msg] = saveForm();
   const saveBox = S.code
     ? h('div', { class: 'save' },
-        h('div', { class: 'codeline' }, 'Your data is saved as ', h('b', null, S.code)),
-        h('button', { class: 'btn small', onclick: copyCode }, 'Copy code'))
-    : h('div', { class: 'save' }, form, msg, h('span', { class: 'hint' }, 'Already have a code? Type it in.'));
+        h('div', { class: 'codeline' }, 'Logged in as ', h('b', null, S.code)),
+        h('button', { class: 'btn small', onclick: copyCode }, 'Copy login'))
+    : h('div', { class: 'save' }, form, msg, h('span', { class: 'hint' }, 'Already have a login? Type it in.'));
 
   const el = h('section', { class: 'timer' },
     T.clock,

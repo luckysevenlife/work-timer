@@ -280,4 +280,14 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .side .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grid.week .blk { font-size: 0; padding: 0; left: 3px; right: 3px; }
 }
+/* On a computer, the month and year stretch to fill the window exactly, so there is nothing to scroll. */
+@media (min-width: 761px) {
+  .cal { flex: 1; padding-bottom: 20px; }
+  .month { flex: 1; grid-template-rows: auto; grid-auto-rows: minmax(52px, 1fr); }
+  .cell { aspect-ratio: auto; min-height: 0; }
+  .year { flex: 1; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 14px 20px; }
+  .mini { display: flex; flex-direction: column; min-height: 0; }
+  .minigrid { flex: 1; grid-template-rows: repeat(6, minmax(13px, 1fr)); }
+  .minigrid button, .minigrid i { aspect-ratio: auto; }
+}
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

@@ -135,9 +135,6 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .install:hover .tile { background: var(--hover); }
 .modal ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
 .mainsteps { font-size: 15px; }
-.modal .link { align-self: flex-start; }
-.others { display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--line); padding-top: 14px; color: var(--muted); font-size: 14px; }
-.steps h3 { margin: 0 0 6px; font-size: 14px; color: var(--text); }
 .link { color: var(--muted); font-size: 13px; }
 .link:hover { color: var(--text); text-decoration: underline; }
 .field {

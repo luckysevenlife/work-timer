@@ -66,9 +66,9 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 13vh;
-  padding-bottom: 32px;
-  gap: 26px;
+  padding-top: 9vh;
+  padding-bottom: 16px;
+  gap: 22px;
   text-align: center;
 }
 .clock {
@@ -123,11 +123,21 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 }
 .chip:hover { background: var(--hover); }
 
-.save { margin-top: auto; padding-top: 110px; display: flex; flex-direction: column; gap: 8px; align-items: center; width: 100%; }
+.save { margin-top: auto; padding-top: 92px; display: flex; flex-direction: column; gap: 8px; align-items: center; width: 100%; }
 .save form { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 100%; }
 .save small, .hint { color: var(--muted); font-size: 13px; }
 .codeline { color: var(--muted); }
 .codeline b { color: var(--text); }
+.install { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 8px; color: var(--muted); font-size: 13px; }
+.install .tile { width: 46px; height: 46px; border-radius: 11px; background: var(--raised); color: var(--text); display: grid; place-items: center; transition: background .15s; }
+.install .tile svg { width: 24px; height: 24px; }
+.install:hover { color: var(--text); }
+.install:hover .tile { background: var(--hover); }
+.modal ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.mainsteps { font-size: 15px; }
+.modal .link { align-self: flex-start; }
+.others { display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--line); padding-top: 14px; color: var(--muted); font-size: 14px; }
+.steps h3 { margin: 0 0 6px; font-size: 14px; color: var(--text); }
 .link { color: var(--muted); font-size: 13px; }
 .link:hover { color: var(--text); text-decoration: underline; }
 .field {
@@ -272,7 +282,7 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 @media (max-width: 760px) {
   .dayview { grid-template-columns: minmax(0, 1fr); }
   .year { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .timer { padding-top: 11vh; }
+  .timer { padding-top: 6vh; }
   .hours { width: 46px; }
   .cell { padding: 5px 6px; aspect-ratio: auto; }
   .cell .t { font-size: 10px; white-space: normal; line-height: 1.2; }

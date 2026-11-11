@@ -25,6 +25,7 @@ const ICON = {
   pause: svg('<rect x="5" y="4" width="5" height="16" rx="1.2"/><rect x="14" y="4" width="5" height="16" rx="1.2"/>', true),
   reset: svg('<path d="M3 12a9 9 0 1 0 2.64-6.36L3 8"/><path d="M3 3v5h5"/>'),
   adjust: svg('<path d="M12 3v8M8 7h8M8 18h8"/>'),
+  download: svg('<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 15.5v2.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2.5"/>'),
 };
 
 const app = document.getElementById('app');
@@ -323,6 +324,67 @@ async function logout() {
   render();
 }
 
+/* ---------- install as an app ---------- */
+// Chrome, Edge and Android hand us an install prompt; everywhere else we show the steps for that device.
+let installPrompt = null;
+const ua = navigator.userAgent;
+const isApp = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/.test(ua);
+const inOtherApp = /FBAN|FBAV|Instagram|TikTok|musical_ly|Twitter|Snapchat|LinkedInApp|Line\//.test(ua);
+const isFirefox = /Firefox|FxiOS/.test(ua);
+const isMacSafari = /Macintosh/.test(ua) && !isIOS && /Safari/.test(ua) && !/Chrome|Chromium|Edg|Firefox/.test(ua);
+
+const STEPS = {
+  iphone: ['Tap the Share button (the square with an arrow pointing up).', 'Tap Add to Home Screen. You may need to scroll down.', 'Tap Add.'],
+  android: ['Tap the menu button (three dots, top right).', 'Tap Install app or Add to Home screen.'],
+  macSafari: ['Click File in the menu bar at the top of your screen.', 'Click Add to Dock.'],
+  computer: ['Use Chrome or Edge.', 'Click the install icon at the right end of the address bar.', "Don't see it? Open the browser menu and look for Install."],
+};
+
+function stepsFor() {
+  if (inOtherApp) return { title: 'Open this page in your browser first', note: "You're inside another app, which can't install apps. Open the menu (••• or ⋮) and choose Open in Safari or Open in Chrome. Then tap Install the app again." };
+  if (isIOS) return { title: 'Install on iPhone or iPad', steps: STEPS.iphone, note: "No Share button? You're probably inside another app. Tap Open in Safari first." };
+  if (isAndroid) return { title: 'Install on Android', steps: STEPS.android };
+  if (isMacSafari) return { title: 'Install on Mac', steps: STEPS.macSafari };
+  if (isFirefox) return { title: 'Firefox can’t install apps', note: 'Open this page in Chrome, Edge or Safari, then click Install the app again.' };
+  return { title: 'Install on your computer', steps: STEPS.computer.slice(1) };
+}
+
+function stepList(title, steps) {
+  return h('div', { class: 'steps' }, h('h3', null, title), h('ol', null, steps.map((x) => h('li', null, x))));
+}
+
+function installModal() {
+  const s = stepsFor();
+  const others = h('div', { class: 'others', hidden: true },
+    stepList('iPhone or iPad', STEPS.iphone), stepList('Android', STEPS.android),
+    stepList('Mac, in Safari', STEPS.macSafari), stepList('Mac or Windows', STEPS.computer));
+  const toggle = h('button', { class: 'link', onclick: () => { others.hidden = !others.hidden; toggle.textContent = others.hidden ? 'Other devices' : 'Hide other devices'; } }, 'Other devices');
+  openModal(h('div', { class: 'modal' },
+    h('h2', null, s.title),
+    s.steps ? h('ol', { class: 'mainsteps' }, s.steps.map((x) => h('li', null, x))) : null,
+    s.note ? h('p', null, s.note) : null,
+    toggle, others,
+    h('div', { class: 'row' }, h('button', { class: 'btn light', onclick: closeModal }, 'Done'))));
+}
+
+async function install() {
+  if (!installPrompt) return installModal();
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+}
+
+function installButton() {
+  if (isApp()) return null;
+  return h('button', { class: 'install', onclick: install },
+    h('span', { class: 'tile', html: ICON.download }),
+    h('span', null, 'Install the app'));
+}
+
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
+
 /* ---------- modal + toast ---------- */
 let veil = null;
 function openModal(content) {
@@ -402,10 +464,10 @@ function viewTimer() {
 
   const [form, msg] = saveForm();
   const saveBox = S.code
-    ? h('div', { class: 'save' },
+    ? h('div', { class: 'save' }, installButton(),
         h('div', { class: 'codeline' }, 'Logged in as ', h('b', null, S.code)),
         h('button', { class: 'link', onclick: logout }, 'Log out'))
-    : h('div', { class: 'save' }, form, msg, h('span', { class: 'hint' }, 'Already have a login? Type it in.'));
+    : h('div', { class: 'save' }, installButton(), form, msg, h('span', { class: 'hint' }, 'Already have a login? Type it in.'));
 
   const el = h('section', { class: 'timer' },
     T.clock,

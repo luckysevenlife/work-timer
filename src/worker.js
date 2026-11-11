@@ -86,7 +86,11 @@ async function api(request, env, url) {
       if (method === 'PUT') {
         const data = checkData(await request.json().catch(() => null));
         if (data == null) return json({ error: 'bad_data' }, 400);
-        const r = await db.prepare('UPDATE users SET data = ?, updated = ? WHERE code = ?').bind(data, Date.now(), code).run();
+        // A login whose saved data starts with {"locked":true is read-only. The example login uses this so nobody can change it.
+        const r = await db
+          .prepare(`UPDATE users SET data = ?, updated = ? WHERE code = ? AND substr(data, 1, 14) != '{"locked":true'`)
+          .bind(data, Date.now(), code)
+          .run();
         if (!r.meta || r.meta.changes !== 1) return json({ error: 'not_found' }, 404);
         return json({ ok: true });
       }

@@ -88,7 +88,7 @@ async function api(request, env, url) {
         if (data == null) return json({ error: 'bad_data' }, 400);
         // A login whose saved data starts with {"locked":true is read-only. The example login uses this so nobody can change it.
         const r = await db
-          .prepare(`UPDATE users SET data = ?, updated = ? WHERE code = ? AND substr(data, 1, 14) != '{"locked":true'`)
+          .prepare(`UPDATE users SET data = ?, updated = ? WHERE code = ? AND (substr(data, 1, 14) != '{"locked":true' OR substr(?1, 1, 14) = '{"locked":true')`)
           .bind(data, Date.now(), code)
           .run();
         if (!r.meta || r.meta.changes !== 1) return json({ error: 'not_found' }, 404);

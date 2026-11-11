@@ -398,7 +398,7 @@ function viewTimer() {
 
   const el = h('section', { class: 'timer' },
     T.clock,
-    h('div', { class: 'goal' }, h('label', { for: 'goal' }, 'Goal:'), goalInput),
+    h('div', { class: 'goal' }, h('label', { for: 'goal' }, 'Goal'), goalInput),
     h('div', { class: 'bar' }, T.bar),
     h('div', { class: 'controls' },
       h('button', { class: 'round', html: ICON.reset, 'aria-label': 'Reset today to zero', onclick: () => togglePop(T.resetPop) }),

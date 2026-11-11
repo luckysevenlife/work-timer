@@ -309,7 +309,6 @@ async function loadCode(code, say) {
     S.code = j.code;
     save();
     render();
-    toast(`Logged in as ${j.code}.`);
     push().catch(() => {});
   } catch (e) { say("Couldn't load right now. Check your connection and try again."); }
 }
@@ -322,7 +321,6 @@ async function logout() {
   S = fresh();
   save();
   render();
-  toast('Logged out.');
 }
 
 /* ---------- modal + toast ---------- */

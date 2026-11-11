@@ -124,13 +124,17 @@ function segsOf(key, now = Date.now()) {
   if (S.run && S.run.day === key) a.push({ s: S.run.s, e: now, live: true });
   return a.sort((x, y) => x.s - y.s);
 }
+const MARKS = [['green', 'Mark as hit goal'], ['yellow', 'Mark as worked, missed goal'], ['red', 'Mark as no work'], ['rest', 'Mark as rest day']];
 const goalOf = (key) => (S.days[key] && S.days[key].g) || S.goal || null;
 const isRest = (key) => !!(S.days[key] && S.days[key].rest);
 const tracked = (key) => !!S.started && key >= S.started && key <= todayKey();
 
-// green = hit goal, yellow = worked but missed (or no goal set), red = no work, rest = rest day, '' = nothing to show
+// green = hit goal, yellow = worked but missed (or no goal set), red = no work, rest = rest day, '' = nothing to show.
+// A day you marked by hand (d.mark) shows that color no matter what the timer recorded.
+const markOf = (key) => (S.days[key] && S.days[key].mark) || '';
 function status(key) {
   if (!tracked(key)) return '';
+  if (markOf(key)) return markOf(key);
   const t = total(key), goal = goalOf(key);
   if (goal && t >= goal) return 'green';
   if (isRest(key)) return 'rest';
@@ -516,10 +520,10 @@ function rangeStats(keys) {
   for (const k of keys) {
     const t = total(k);
     sum += t;
-    if (t > 0) worked++;
+    if (t > 0 || markOf(k) === 'green' || markOf(k) === 'yellow') worked++;
     if (status(k) === 'green') hit++;
     // the average counts every tracked day except rest days; today only counts once it has work
-    if (t > 0 || (tracked(k) && k < today && !isRest(k))) counted++;
+    if (t > 0 || markOf(k) || (tracked(k) && k < today && !isRest(k))) counted++;
   }
   const stat = (label, value) => h('div', { class: 'stat' }, h('span', null, label), h('b', null, value));
   return h('div', { class: 'stats' },
@@ -583,7 +587,7 @@ function timeGrid(keys, week) {
 function dayView(key) {
   const today = todayKey(), future = key > today;
   const d = S.days[key], st = status(key), segs = segsOf(key), goal = goalOf(key);
-  const pillText = { green: 'Hit', yellow: key === today ? 'In progress' : 'Missed', red: 'No work', rest: 'Rest day' }[st];
+  const pillText = { green: 'Hit', yellow: key === today && !markOf(key) ? 'In progress' : 'Missed', red: 'No work', rest: 'Rest day' }[st];
   const stat = (label, ...value) => h('div', { class: 'stat' }, h('span', null, label), h('b', null, value));
 
   const list = h('ul', { class: 'sessions' }, segs.map((x) =>
@@ -608,8 +612,12 @@ function dayView(key) {
     requestAnimationFrame(fit);
     side.append(
       h('div', null, h('h3', null, 'Note'), note),
-      h('div', null, h('button', { class: 'btn small', onclick: () => { edit((x) => { x.rest = !x.rest; }); render(); } },
-        isRest(key) ? 'Rest day ✓  Undo' : 'Mark as rest day')));
+      h('div', { class: 'marks' }, MARKS.map(([value, label]) => {
+        const on = value === 'rest' ? isRest(key) : markOf(key) === value;
+        // Tap a mark to set it; tap it again to clear it and go back to what the timer recorded.
+        const set = () => { markStarted(key); edit((x) => { x.rest = !on && value === 'rest'; x.mark = on || value === 'rest' ? undefined : value; }); render(); };
+        return h('button', { class: 'btn small' + (on ? ' on' : ''), onclick: set }, h('i', { class: 's-' + value }), on ? label + ' ✓' : label);
+      })));
   }
   return h('div', { class: 'dayview' }, timeGrid([key], false), side);
 }

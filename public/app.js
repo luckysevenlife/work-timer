@@ -336,7 +336,7 @@ const isFirefox = /Firefox|FxiOS/.test(ua);
 const isMacSafari = /Macintosh/.test(ua) && !isIOS && /Safari/.test(ua) && !/Chrome|Chromium|Edg|Firefox/.test(ua);
 
 const STEPS = {
-  iphone: ['Tap Share. If you don’t see it, tap the three dots first.', 'Tap Add to Home Screen.', 'Tap Add.'],
+  iphone: ['Tap Share. If you don’t see it, tap the three dots first.', 'Tap Add to Home Screen. If you don’t see it, tap View More.', 'Tap Add.'],
   android: ['Tap the menu button (three dots, top right).', 'Tap Install app or Add to Home screen.'],
   macSafari: ['Click File in the menu bar at the top of your screen.', 'Click Add to Dock.'],
   computer: ['Click the install icon at the right end of the address bar.', "Don't see it? Open the browser menu and look for Install."],

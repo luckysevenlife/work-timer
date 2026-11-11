@@ -314,6 +314,17 @@ async function loadCode(code, say) {
   } catch (e) { say("Couldn't load right now. Check your connection and try again."); }
 }
 
+// Saves everything online one last time, then clears this device so someone else can log in.
+async function logout() {
+  if (S.run) stop();
+  clearTimeout(syncT); syncT = null;
+  try { await push(); } catch (e) { return toast("Couldn't save online right now. Try again in a moment."); }
+  S = fresh();
+  save();
+  render();
+  toast('Logged out.');
+}
+
 /* ---------- modal + toast ---------- */
 let veil = null;
 function openModal(content) {
@@ -393,7 +404,9 @@ function viewTimer() {
 
   const [form, msg] = saveForm();
   const saveBox = S.code
-    ? h('div', { class: 'save' }, h('div', { class: 'codeline' }, 'Logged in as ', h('b', null, S.code)))
+    ? h('div', { class: 'save' },
+        h('div', { class: 'codeline' }, 'Logged in as ', h('b', null, S.code)),
+        h('button', { class: 'link', onclick: logout }, 'Log out'))
     : h('div', { class: 'save' }, form, msg, h('span', { class: 'hint' }, 'Already have a login? Type it in.'));
 
   const el = h('section', { class: 'timer' },

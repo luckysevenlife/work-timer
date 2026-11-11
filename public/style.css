@@ -128,6 +128,8 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .save small, .hint { color: var(--muted); font-size: 13px; }
 .codeline { color: var(--muted); }
 .codeline b { color: var(--text); }
+.link { color: var(--muted); font-size: 13px; }
+.link:hover { color: var(--text); text-decoration: underline; }
 .field {
   box-sizing: content-box; flex: none; width: 258px; max-width: calc(100% - 26px);
   background: var(--panel);

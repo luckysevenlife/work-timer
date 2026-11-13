@@ -13,6 +13,8 @@ const RESET_H = 2;                 // the day rolls over at 2 AM
 const AWAY = 15 * 60e3;            // gap that triggers "count it?"
 const BEAT = 30e3;                 // "still here" heartbeat
 const IDLE = 3 * 3600e3;           // no clicks for this long at 2 AM = stop
+const POLL = 20e3;                 // while the page is open, check for changes from other devices this often
+const SEEN_PUSH = 2 * 60e3;        // while running, tell other devices "still here" this often
 const HOUR_PX = 46;                // keep in sync with --hour in style.css
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DOWS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -50,7 +52,7 @@ function h(tag, props, ...kids) {
 /* ---------- state ---------- */
 // goal: seconds, or null when no goal is set. days: { 'YYYY-MM-DD': { segs, adj, note, rest, g, u } }
 function fresh() {
-  return { v: 1, code: null, goal: null, goalU: 0, started: null, days: {}, run: null };
+  return { v: 1, code: null, goal: null, goalU: 0, started: null, days: {}, run: null, runU: 0 };
 }
 function load() {
   try {
@@ -146,16 +148,18 @@ function status(key) {
 let awayOpen = false;
 let lastTouch = Date.now();
 
-function touch() { save(); queueSync(); }
+// soon = save online right away (play/pause), otherwise a few seconds later.
+function touch(soon) { dirty = true; save(); if (soon) syncNow(); else queueSync(); }
 function markStarted(key) { if (!S.started || key < S.started) S.started = key; }
 
 function start() {
   if (S.run) return;
   const now = Date.now(), key = keyOf(now);
   S.run = { s: now, seen: now, day: key };
+  S.runU = now;
   markStarted(key);
   day(key, true);
-  save();
+  touch(true);
   paintTimer(true);
 }
 function stop(at = Date.now()) {
@@ -164,7 +168,8 @@ function stop(at = Date.now()) {
   if (at > r.s) d.segs.push({ s: r.s, e: at });
   d.u = Date.now();
   S.run = null;
-  touch();
+  S.runU = Date.now();
+  touch(true);
   paintTimer(true);
 }
 function toggle() { S.run ? stop() : start(); }
@@ -182,9 +187,9 @@ function adjust(deltaSec) {
 
 function resetToday() {
   const key = activeDay(), d = S.days[key];
-  S.run = null;
+  if (S.run) { S.run = null; S.runU = Date.now(); }
   if (d) { d.segs = []; d.adj = 0; d.u = Date.now(); }
-  touch();
+  touch(true);
   paintTimer(true);
 }
 
@@ -221,7 +226,12 @@ function checkAway(now) {
     toast('Timer stopped at 2 AM because nobody was here.');
     return;
   }
-  if (!awayOpen && gap >= BEAT) { r.seen = now; save(); }
+  if (!awayOpen && gap >= BEAT) {
+    r.seen = now;
+    save();
+    // let the other devices know someone is still here, so they don't ask "Were you working?"
+    if (S.code && now - lastSeenPush >= SEEN_PUSH) { lastSeenPush = now; dirty = true; queueSync(); }
+  }
 }
 
 function awayModal(gap) {
@@ -231,7 +241,7 @@ function awayModal(gap) {
     awayOpen = false;
     closeModal();
     if (!count) stop(seen);
-    else if (S.run) { S.run.seen = Date.now(); save(); }
+    else if (S.run) { S.run.seen = Date.now(); touch(); }
   };
   openModal(h('div', { class: 'modal' },
     h('h2', null, 'Were you working?'),
@@ -242,16 +252,26 @@ function awayModal(gap) {
 }
 
 /* ---------- sync ---------- */
+// Everything, including whether the timer is running right now, is saved online under the login.
+// Each device checks for changes when it opens, when you come back to it, and every POLL while it's on screen.
+// The server merges what each device sends (newest change wins), so devices never undo each other.
 let syncT = null;
+let dirty = false;          // this device has changes the server doesn't have yet
+let lastSeenPush = 0;
+let returning = false;      // true while we fetch the latest state after coming back to the app
+let chain = Promise.resolve();
 const dataUrl = (code) => `${API}/data?code=${encodeURIComponent(code)}`;
-const exportData = () => ({ v: 1, goal: S.goal, goalU: S.goalU, started: S.started, days: S.days });
+const exportData = () => ({ v: 1, goal: S.goal, goalU: S.goalU, started: S.started, days: S.days, run: S.run, runU: S.runU || 0 });
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+const cleanRun = (r) => (r && typeof r === 'object' && typeof r.s === 'number' && typeof r.day === 'string' && DAY_KEY.test(r.day)
+  ? { s: r.s, seen: typeof r.seen === 'number' ? r.seen : r.s, day: r.day } : null);
 
 function merge(remote) {
   if (!remote || typeof remote !== 'object') return;
   const days = remote.days && typeof remote.days === 'object' ? remote.days : {};
   for (const k in days) {
     const r = days[k], l = S.days[k];
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !r || !Array.isArray(r.segs)) continue;
+    if (!DAY_KEY.test(k) || !r || !Array.isArray(r.segs)) continue;
     if (!l || (r.u || 0) > (l.u || 0)) S.days[k] = r;
   }
   if ((remote.goalU || 0) > (S.goalU || 0)) {
@@ -259,28 +279,72 @@ function merge(remote) {
     S.goalU = remote.goalU;
   }
   if (remote.started) markStarted(remote.started);
+
+  // Running or paused: whichever device pressed play/pause last wins.
+  const remoteRun = cleanRun(remote.run);
+  if ((remote.runU || 0) > (S.runU || 0)) {
+    S.run = remoteRun;
+    S.runU = remote.runU;
+  } else if (S.run && remoteRun && remoteRun.s === S.run.s && remoteRun.seen > S.run.seen) {
+    S.run.seen = remoteRun.seen;   // another device is open and was here more recently
+  }
+  // Close "Were you working?" if another device already answered it, or was in use the whole time.
+  if (awayOpen && (!S.run || Date.now() - S.run.seen <= AWAY)) { awayOpen = false; closeModal(); }
 }
+
+// What a merge can change on screen (ignores the "still here" time, which changes constantly).
+const sig = () => JSON.stringify([S.goal, S.started, S.days, S.run && [S.run.s, S.run.day], S.runU]);
+function refresh() {
+  if (!veil && !isTyping(document.activeElement)) render(); else paintTimer(true);
+}
+function applyRemote(data) {
+  const before = sig();
+  merge(data);
+  save();
+  if (sig() !== before) refresh();
+}
+
 function push(keepalive) {
   return fetch(dataUrl(S.code), {
-    method: 'PUT', keepalive: !!keepalive,
+    method: 'PUT', keepalive: !!keepalive, cache: 'no-store',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(exportData()),
   });
 }
-async function syncNow() {
-  clearTimeout(syncT); syncT = null;
-  if (!S.code) return;
+async function pull(code) {
+  const r = await fetch(dataUrl(code), { cache: 'no-store' });
+  return r.ok ? (await r.json()).data : null;
+}
+// Sends this device's changes (if any) and takes in everyone else's. Runs one at a time, in order.
+async function syncOnce(forcePush) {
+  const code = S.code;
+  if (!code) return;
+  let data = null;
   try {
-    const r = await fetch(dataUrl(S.code));
-    if (r.ok) { merge((await r.json()).data); save(); }
-    await push();
-  } catch (e) { /* offline: local copy is still safe, try again next change */ }
+    if (dirty || forcePush) {
+      dirty = false;
+      let r;
+      try { r = await push(); } catch (e) { dirty = true; throw e; }
+      if (r.ok) data = (await r.json().catch(() => ({}))).data || null;
+      else if (r.status >= 500) dirty = true;
+    }
+    if (!data) data = await pull(code);
+    if (data && S.code === code) applyRemote(data);
+  } catch (e) { /* offline: local copy is still safe, try again next time */ }
+}
+function syncNow(forcePush) {
+  clearTimeout(syncT); syncT = null;
+  if (!S.code) return Promise.resolve();
+  const run = () => syncOnce(forcePush);
+  chain = chain.then(run, run);
+  return chain;
 }
 function queueSync() {
   if (!S.code) return;
   clearTimeout(syncT);
   syncT = setTimeout(syncNow, 3000);
 }
+const within = (p, ms) => Promise.race([p, new Promise((res) => setTimeout(res, ms))]);
 
 // One box does both jobs: a name makes a new code, a code (like Mike4821) loads that data.
 async function submitName(raw, say) {
@@ -314,7 +378,7 @@ async function loadCode(code, say) {
     S.code = j.code;
     save();
     render();
-    push().catch(() => {});
+    syncNow(true);
   } catch (e) { say("Couldn't load right now. Check your connection and try again."); }
 }
 
@@ -724,7 +788,7 @@ const isTyping = (el) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXT
 let lastCalPaint = Date.now();
 function tick() {
   const now = Date.now();
-  checkAway(now);
+  if (!returning) checkAway(now);
   paintTimer(false);
   if (S.run && currentView() === 'calendar' && now - lastCalPaint > 60e3) {
     lastCalPaint = now;
@@ -744,16 +808,31 @@ function leaving() {
   if (S.run && !awayOpen && Date.now() - S.run.seen <= AWAY) S.run.seen = Date.now();
   save();
 }
+// Coming back to the app (phone unlocked, tab or window brought back): get the latest state
+// from the other devices first, then check whether you were away.
+let lastBack = 0;
+async function back() {
+  lastTouch = Date.now();
+  if (S.code && Date.now() - lastBack > 2000) {
+    lastBack = Date.now();
+    returning = true;
+    await within(syncNow(), 4000);
+    returning = false;
+  }
+  tick();
+}
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     leaving();
-    if (S.code && syncT) { clearTimeout(syncT); syncT = null; push(true).catch(() => {}); }
+    if (S.code && dirty) { clearTimeout(syncT); syncT = null; dirty = false; push(true).catch(() => { dirty = true; }); }
   } else {
-    lastTouch = Date.now();
-    tick();
+    back();
   }
 });
 window.addEventListener('pagehide', leaving);
+window.addEventListener('pageshow', (e) => { if (e.persisted) back(); });
+window.addEventListener('focus', back);
+window.addEventListener('online', () => { if (S.code) syncNow(); });
 
 // Spacebar plays and pauses, unless you are typing.
 document.addEventListener('keydown', (e) => {
@@ -770,7 +849,12 @@ document.addEventListener('keyup', (e) => {
 });
 
 render();
-checkAway(Date.now());
 setInterval(tick, 250);
-if (S.code) syncNow().then(render);
+setInterval(() => { if (S.code && document.visibilityState === 'visible') syncNow(); }, POLL);
+if (S.code) {
+  returning = true;
+  within(syncNow(true), 4000).then(() => { returning = false; render(); checkAway(Date.now()); });
+} else {
+  checkAway(Date.now());
+}
 })();
